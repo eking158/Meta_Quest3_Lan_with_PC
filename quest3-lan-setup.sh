@@ -429,7 +429,7 @@ ${C_BOLD}연결 순서${C_RESET}
   3) 랜선으로 어댑터와 이 PC의 랜 포트를 연결합니다.
   4) Quest 3를 켭니다. 테스트할 때는 Quest의 Wi-Fi를 꺼 두면 확실합니다.
   5) 메뉴에서 "1) 연결 설정하기"를 실행합니다.
-  6) 마지막에 안내되는 "PC 주소"를 Quest 앱의 서버(PC) 주소 칸에 입력합니다.
+  6) 메뉴 화면이나 "2) 연결 상태 확인"에 표시되는 "PC 주소"를 Quest 앱의 서버(PC) 주소 칸에 입력합니다.
 
 ${C_BOLD}알아두면 좋은 점${C_RESET}
   - Quest 설정 화면에 "유선 연결됨"이 표시되지 않을 수 있습니다. 그래도 정상일 수 있으니
@@ -506,40 +506,6 @@ wait_for_link() {
       q|Q) info "설정을 그만둡니다."; exit 0 ;;
     esac
   done
-}
-
-# Quest 가 IP를 받아 응답할 때까지 기다린다 (대화형일 때만)
-wait_for_quest() {
-  local i ip
-  [ -t 0 ] || return 0
-  echo "${C_BOLD}Quest 3 연결 확인${C_RESET}"
-  echo "Quest 3를 켜고 랜선이 연결된 상태로 두세요. Quest가 IP를 받을 때까지 기다립니다."
-  echo "(최대 90초, 기다리지 않으려면 엔터)"
-  for (( i = 0; i < 45; i++ )); do
-    if [ -s "$LEASE_FILE" ]; then
-      while read -r _ _ ip _; do
-        if ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
-          echo
-          ok "Quest 연결 확인! Quest가 받은 IP: ${ip}"
-          return 0
-        fi
-      done < "$LEASE_FILE"
-    fi
-    printf '.'
-    if read -rst 2 _; then
-      echo
-      info "확인을 건너뛰었습니다. 나중에 메뉴의 \"2) 연결 상태 확인\"으로 확인할 수 있습니다."
-      return 1
-    fi
-  done
-  echo
-  warn "90초 안에 Quest의 응답을 확인하지 못했습니다. 아래를 확인해주세요:"
-  echo "  - Quest가 켜져 있고 잠자기 상태가 아닌지 (헤드셋을 한 번 써서 깨워주세요)"
-  echo "  - 어댑터를 Quest에서 뽑았다가 다시 꽂아보기"
-  echo "  - Quest의 Wi-Fi를 끄고 다시 확인하기"
-  echo "  - 다른 USB-C 이더넷 어댑터로 바꿔보기 (일부 칩셋은 Quest에서 인식되지 않음)"
-  echo "  설정 자체는 끝났으므로, 연결되면 자동으로 동작합니다. 메뉴의 \"2) 연결 상태 확인\"으로 다시 확인하세요."
-  return 1
 }
 
 # ── 설정 (1~6단계) ───────────────────────────────────────────────────
@@ -744,11 +710,6 @@ EOF
 
   # ── 완료 안내 ──
   echo "${C_BOLD}${C_GREEN}=== 설정 완료 ===${C_RESET}"
-  echo
-  echo "  Quest 앱의 서버(PC) 주소 칸에 입력할 값:  ${C_BOLD}${GATEWAY_IP}${C_RESET}"
-  echo
-  wait_for_quest || true
-  echo
   echo "이 창을 닫아도 연결 설정은 유지됩니다."
   if [ "$ARGC" -ne 0 ] || [ ! -t 0 ]; then
     echo "현재 상태 보기 : $0 --status"
