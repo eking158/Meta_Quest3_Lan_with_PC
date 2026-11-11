@@ -502,7 +502,7 @@ wait_for_link() {
     read -rp "연결했으면 엔터(다시 확인), 그냥 진행하려면 s, 그만두려면 q: " answer || answer=q
     case "$answer" in
       s|S) return 0 ;;
-      q|Q) info "설정을 그만둡니다."; exit 0 ;;
+      q|Q) info "설정을 그만둡니다."; exit 2 ;;
     esac
   done
 }
@@ -718,7 +718,7 @@ EOF
 
 # ── 메인 메뉴 ─────────────────────────────────────────────────────────
 main_menu() {
-  local choice pc
+  local choice pc rc
   while true; do
     echo
     echo "${C_BOLD}==============================================${C_RESET}"
@@ -740,7 +740,16 @@ main_menu() {
     read -rp "번호를 입력하고 엔터를 누르세요 [기본: 1]: " choice || exit 0
     echo
     case "${choice:-1}" in
-      1) ( do_setup ) || true; pause ;;
+      1)
+        # '|| true' 나 if 안에서 실행하면 서브셸의 set -e 가 꺼지므로, 잠시 끄고 서브셸 안에서 다시 켠다
+        set +e
+        ( set -e; do_setup )
+        rc=$?
+        set -e
+        if [ "$rc" -eq 0 ]; then
+          exit 0   # 설정이 끝나면 메뉴로 돌아가지 않고 종료
+        fi
+        pause ;;
       2) show_guide; pause ;;
       0|q|Q) echo "종료합니다."; exit 0 ;;
       *) warn "1, 2, 0 중에서 골라주세요." ;;
