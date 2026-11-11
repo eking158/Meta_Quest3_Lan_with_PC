@@ -23,7 +23,7 @@
 #   sudo ./quest3-lan-setup.sh --uninstall      # 설정 해제(전용 서비스 + quest3-direct 프로필 제거)
 #   ./quest3-lan-setup.sh --status              # 현재 설정 상태 보기
 #   옵션 없이 터미널에서 실행하면(바탕화면 아이콘 포함) 처음 사용자를 위한 안내 메뉴가 나옵니다:
-#     1) 연결 설정하기  2) 연결 상태 확인  3) 연결 해제  4) 준비물·연결 방법 안내  0) 종료
+#     1) 연결 설정하기  2) 준비물·연결 방법 안내  0) 종료
 #
 set -euo pipefail
 
@@ -79,7 +79,7 @@ usage() {
   -y, --yes              확인 질문 없이 진행 (--uninstall 과 함께 사용)
   -h, --help             도움말 출력
 
-옵션 없이 실행하면 안내 메뉴(설정 / 상태 확인 / 해제 / 준비물 안내)가 나옵니다.
+옵션 없이 실행하면 안내 메뉴(연결 설정 / 준비물 안내)가 나옵니다.
 EOF
 }
 
@@ -429,14 +429,13 @@ ${C_BOLD}연결 순서${C_RESET}
   3) 랜선으로 어댑터와 이 PC의 랜 포트를 연결합니다.
   4) Quest 3를 켭니다. 테스트할 때는 Quest의 Wi-Fi를 꺼 두면 확실합니다.
   5) 메뉴에서 "1) 연결 설정하기"를 실행합니다.
-  6) 메뉴 화면이나 "2) 연결 상태 확인"에 표시되는 "PC 주소"를 Quest 앱의 서버(PC) 주소 칸에 입력합니다.
+  6) 메뉴 화면 위쪽에 표시되는 "PC 주소"를 Quest 앱의 서버(PC) 주소 칸에 입력합니다.
 
 ${C_BOLD}알아두면 좋은 점${C_RESET}
-  - Quest 설정 화면에 "유선 연결됨"이 표시되지 않을 수 있습니다. 그래도 정상일 수 있으니
-    메뉴의 "2) 연결 상태 확인"으로 Quest가 응답하는지 확인하세요.
+  - Quest 설정 화면에 "유선 연결됨"이 표시되지 않을 수 있습니다. 앱에서 PC에 접속되면 정상입니다.
   - Quest OS 업데이트 후 어댑터 인식이 안 되는 경우가 있습니다. 어댑터를 뽑았다 다시 꽂아 보세요.
   - 이 PC의 그 랜 포트는 Quest 전용으로 쓰게 됩니다. 다시 공유기에 꽂아 쓰려면
-    "3) 연결 해제"를 실행하세요.
+    바탕화면의 "Quest 3 LAN 연결 해제" 아이콘을 실행하세요.
 EOF
 }
 
@@ -499,7 +498,7 @@ wait_for_link() {
     warn "랜선 연결이 감지되지 않습니다. 아래를 확인해주세요:"
     echo "  - Quest 3에 USB-C 이더넷 어댑터가 꽂혀 있고, Quest가 켜져 있나요?"
     echo "  - 랜선이 어댑터와 이 PC의 랜 포트에 끝까지 꽂혀 있나요? (포트의 불빛이 켜지는지 확인)"
-    echo "  - 준비물과 연결 순서는 메뉴의 \"4) 준비물·연결 방법 안내\"에 있습니다."
+    echo "  - 준비물과 연결 순서는 메뉴의 \"2) 준비물·연결 방법 안내\"에 있습니다."
     read -rp "연결했으면 엔터(다시 확인), 그냥 진행하려면 s, 그만두려면 q: " answer || answer=q
     case "$answer" in
       s|S) return 0 ;;
@@ -719,7 +718,7 @@ EOF
 
 # ── 메인 메뉴 ─────────────────────────────────────────────────────────
 main_menu() {
-  local choice default pc
+  local choice pc
   while true; do
     echo
     echo "${C_BOLD}==============================================${C_RESET}"
@@ -730,27 +729,21 @@ main_menu() {
     if is_configured; then
       pc="$(configured_pc_cidr)"
       echo "현재 상태: ${C_GREEN}설정됨${C_RESET}${pc:+ — Quest 앱에 입력할 PC 주소: ${C_BOLD}${pc%%/*}${C_RESET}}"
-      default=2
     else
-      echo "현재 상태: ${C_YELLOW}아직 설정 안 됨${C_RESET} — 처음이라면 4번 안내를 먼저 읽고 1번을 실행하세요."
-      default=1
+      echo "현재 상태: ${C_YELLOW}아직 설정 안 됨${C_RESET} — 처음이라면 2번 안내를 먼저 읽고 1번을 실행하세요."
     fi
     echo
     echo "  1) 연결 설정하기"
-    echo "  2) 연결 상태 확인 (Quest가 연결됐는지)"
-    echo "  3) 연결 해제 (원래대로 되돌리기)"
-    echo "  4) 준비물·연결 방법 안내"
+    echo "  2) 준비물·연결 방법 안내"
     echo "  0) 종료"
     echo
-    read -rp "번호를 입력하고 엔터를 누르세요 [기본: ${default}]: " choice || exit 0
+    read -rp "번호를 입력하고 엔터를 누르세요 [기본: 1]: " choice || exit 0
     echo
-    case "${choice:-$default}" in
+    case "${choice:-1}" in
       1) ( do_setup ) || true; pause ;;
-      2) print_status_screen; pause ;;
-      3) ( do_uninstall ) || true; pause ;;
-      4) show_guide; pause ;;
+      2) show_guide; pause ;;
       0|q|Q) echo "종료합니다."; exit 0 ;;
-      *) warn "0 ~ 4 중에서 골라주세요." ;;
+      *) warn "1, 2, 0 중에서 골라주세요." ;;
     esac
   done
 }
